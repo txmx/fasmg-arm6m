@@ -546,14 +546,17 @@ end calminstruction
 iterate <name, basecode>, \
 bx,  4700h,		  \
 blx, 4780h		  
-	calminstruction name? dst*
+	calminstruction name? label*
 		local		op, error
 
 		call		arm6.parse_operand@dst, dst
-		check		arm6.@dst.type relativeto arm6.register & \
-				arm6.@dst.value <> arm6.regs.pc
-		jyes		finish
+		check		arm6.@dst.type relativeto arm6.register
+		jyes		cont
 		arrange		error, =err 'subroutine must be provided through register'
+		assemble	error
+	cont:	check		arm6.@dst.value <> arm6.regs.pc
+		jyes		finish
+		arrange		error, =err 'pc not permitted for use in this instruction'
 		assemble	error
 
 	finish: compute		op, basecode or arm6.@dst.value shl 3
@@ -674,10 +677,10 @@ cont:	check		arm6.@src.type relativeto arm6.immediate
 	jyes		literal
 
 	check		arm6.@src.type relativeto arm6.offset
-	jyes		cont2
+	jyes		which
 	arrange		error, =err 'source must be immediate or offset'
 	assemble	error
-cont2:	check		arm6.@src.offtype relativeto arm6.register
+which:	check		arm6.@src.offtype relativeto arm6.register
 	jyes		reg
 	check		arm6.@src.offtype relativeto arm6.immediate
 	jyes		imm
@@ -738,10 +741,10 @@ calminstruction str? dst, off*&
 	assemble	error
 
 cont:	check		arm6.@src.type relativeto arm6.offset
-	jyes		cont2
+	jyes		which
 	arrange		error, =err 'source must be immediate or offset'
 	assemble	error
-cont2:	check		arm6.@src.offtype relativeto arm6.register
+which:	check		arm6.@src.offtype relativeto arm6.register
 	jyes		reg
 	check		arm6.@src.offtype relativeto arm6.immediate
 	jyes		imm
@@ -776,7 +779,7 @@ end calminstruction
 
 iterate <name, regcode, immcode>, \
 ldrb, 5c00h, 7800h, 		  \
-strb, 5400h, 7000h		  \
+strb, 5400h, 7000h
 	calminstruction name? dst, src*
 		local		op, error
 
