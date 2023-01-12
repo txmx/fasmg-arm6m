@@ -424,7 +424,7 @@ macro end?.program?
 	end virtual
 end macro
 
-macro loadprogram? name*
+macro emitprogram? name*
 	local program
 	load program:name.programsize from name:0
 	db program
