@@ -1,5 +1,5 @@
 # fasmg ARM6-M
-This is exclusively an implementation of the ARM6-M instruction set for [fasmg](https://flatassembler.net/docs.php?article=fasmg_manual). I made this for use specifically with the RP2040 chip, which contains two Cortex-M0+ processors.
+This is exclusively an implementation of the ARM6-M instruction set for [fasmg](https://flatassembler.net/docs.php?article=fasmg_manual). I made this for use specifically with the RP2040 chip, which contains a Cortex-M0+ processor.
 The document used to create this was the ARMv6-M Architecture Reference Manul (DDI 0419E)
 
 ## Notes about some syntax changes
