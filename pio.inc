@@ -5,149 +5,148 @@ namespace pio
 	cursideset = 0
 
 	calminstruction parse_sidedelay? sdmask, line&
-		local curside
-		arrange curside, =pio.=cursideset		
+		local 		curside
+		arrange 	curside, =pio.=cursideset
 
-		local maskval, sideval, delayval
-		compute maskval,  0
-		compute sideval,  0
-		compute delayval, 0
+		local 		maskval, sideval, delayval
+		compute 	maskval,  0
+		compute 	sideval,  0
+		compute 	delayval, 0
 
-		match , line
-		jyes sidestick
+		match 		, line
+		jyes 		sidestick
 
-		match =side sideval [delayval], line
-		jno sideonly
-		compute maskval, (1 and optset) shl 12
-		compute sideval, sideval
-		compute delayval, delayval
-		jump delaycheck
+		match 		=side sideval [delayval], line
+		jno 		sideonly
+		compute 	maskval, (1 and optset) shl 12
+		compute 	sideval, sideval
+		compute 	delayval, delayval
+		jump 		delaycheck
 	sideonly:
-		match =side sideval, line
-		jno delayonly
-		compute maskval, (1 and optset) shl 12
-		compute sideval, sideval
-		compute delayval, 0
-		jump sidecheck
+		match 		=side sideval, line
+		jno 		delayonly
+		compute 	maskval, (1 and optset) shl 12
+		compute 	sideval, sideval
+		compute 	delayval, 0
+		jump 		sidecheck
 	delayonly:
-		match [delayval], line
-		jno errmatch
-		compute maskval, 0
-		compute delayval, delayval
-		compute sideval, 0
+		match 		[delayval], line
+		jno 		errmatch
+		compute 	maskval, 0
+		compute 	delayval, delayval
+		compute 	sideval, 0
 	sidestick:
-		check optset
-		jyes delaycheck
-		compute sideval, cursideset
+		check 		optset
+		jyes 		delaycheck
+		compute 	sideval, cursideset
 
 	delaycheck:
-		check delayval > 1fh shr sideset
-		jno sidecheck
-		arrange error, =err 'delay too large for sideset'
-		assemble error
+		check 		delayval > 1fh shr sideset
+		jno 		sidecheck
+		arrange 	error, =err 'delay too large for sideset'
+		assemble 	error
 	sidecheck:
-		check sideval > 1 shl sideset - 1
-		jno finish
-		arrange error, =err 'no side bits available'
-		assemble error
+		check 		sideval > 1 shl sideset - 1
+		jno 		finish
+		arrange 	error, =err 'no side bits available'
+		assemble 	error
 
-	finish:	compute maskval, maskval or delayval shl 8 or \
-				 sideval shl (8 + (5 - (sideset + optset)))
-		publish sdmask, maskval
-		publish :curside, sideval
+	finish:	compute 	maskval, maskval or delayval shl 8 or \
+				 	 sideval shl (8 + (5 - (sideset + optset)))
+		publish 	sdmask, maskval
+		publish 	:curside, sideval
 		exit
 
 	errmatch:
-		arrange error, =err 'unknown syntax encountered at end of instruction'
-		assemble error
+		arrange 	error, =err 'unknown syntax encountered at end of instruction'
+		assemble 	error
 	end calminstruction
 
 	calminstruction jmp? syntax&
-		local 	condmask, address, more, error
+		local 		condmask, address, more, error
 
-		match 	!=x? more, syntax
-		compute condmask, 001'00000b
-		jyes 	parseaddr
-		match 	=x?-- more, syntax
-		compute condmask, 010'00000b
-		jyes 	parseaddr
-		match 	!=y? more, syntax
-		compute condmask, 011'00000b
-		jyes 	parseaddr
-		match 	=y?-- more, syntax
-		compute condmask, 100'00000b
-		jyes 	parseaddr
-		match 	=x?!===y? more, syntax
-		compute condmask, 101'00000b
-		jyes 	parseaddr
-		match 	=pin? more, syntax
-		compute condmask, 110'00000b
-		jyes 	parseaddr
-		match 	!=osre? more, syntax
-		compute condmask, 111'00000b
-		jyes 	parseaddr
-		compute condmask, 0
-		match 	address more?, syntax
-		jump 	checkaddr
+		match 		!=x? more, syntax
+		compute 	condmask, 001'00000b
+		jyes 		parseaddr
+		match 		=x?-- more, syntax
+		compute 	condmask, 010'00000b
+		jyes 		parseaddr
+		match 		!=y? more, syntax
+		compute 	condmask, 011'00000b
+		jyes 		parseaddr
+		match 		=y?-- more, syntax
+		compute 	condmask, 100'00000b
+		jyes 		parseaddr
+		match 		=x?!===y? more, syntax
+		compute 	condmask, 101'00000b
+		jyes 		parseaddr
+		match 		=pin? more, syntax
+		compute 	condmask, 110'00000b
+		jyes 		parseaddr
+		match 		!=osre? more, syntax
+		compute 	condmask, 111'00000b
+		jyes 		parseaddr
+		compute 	condmask, 0
+		match 		address more?, syntax
+		jump 		checkaddr
 
 	parseaddr:
-		match 	address more?, more
+		match 		address more?, more
 	checkaddr:
-		;transform address
-		compute address, address / 2
-		check 	address < 32
-		jyes 	sidedelay
-		arrange error, =err 'address out of range'
-		assemble error
+		compute 	address, address / 2
+		check 		address < 32
+		jyes 		sidedelay
+		arrange 	error, =err 'address out of range'
+		assemble 	error
 	sidedelay:
-		local 	sdmask
-		arrange sdmask, =sdmask
-		call 	parse_sidedelay, sdmask, more
+		local 		sdmask
+		arrange 	sdmask, =sdmask
+		call 		parse_sidedelay, sdmask, more
 
-	finish:	local 	op
-		compute op, sdmask or condmask or address
-		arrange op, =dw op
-		assemble op
+	finish:	local 		op
+		compute 	op, sdmask or condmask or address
+		arrange 	op, =dw op
+		assemble 	op
 	end calminstruction
 
 	calminstruction wait? syntax&
-		local 	polarity, type, index, rel, more, error
-		match 	polarity type index more?, syntax
-		compute rel, 0
+		local 		polarity, type, index, rel, more, error
+		match 		polarity type index more?, syntax
+		compute 	rel, 0
 
-		compute polarity, polarity
-		check 	polarity > 1
-		compute polarity, polarity shl 7
-		jno 	parse
-		arrange error, =err 'polarity can be either 1 or 0'
-		assemble error
+		compute 	polarity, polarity
+		check 		polarity > 1
+		compute		polarity, polarity shl 7
+		jno 		parse
+		arrange 	error, =err 'polarity can be either 1 or 0'
+		assemble 	error
 
 	parse:  transform type, wait
-		check 	type = wait.irq
-		jno 	noirq
-		check 	index <= 7
-		jyes 	relcheck
-		arrange error, =err 'index can only be 0 to 7'
-		assemble error
+		check 		type = wait.irq
+		jno 		noirq
+		check 		index <= 7
+		jyes 		relcheck
+		arrange 	error, =err 'index can only be 0 to 7'
+		assemble 	error
 	relcheck:
-		match 	=rel? more?, more
-		compute rel, 10000b
-		jump 	sidedelay
-	noirq:  check 	index < 32
-		jyes 	sidedelay
-		arrange error, =err 'index can only be below 32'
-		assemble error
+		match 		=rel? more?, more
+		compute 	rel, 10000b
+		jump 		sidedelay
+	noirq:  check 		index < 32
+		jyes 		sidedelay
+		arrange 	error, =err 'index can only be below 32'
+		assemble 	error
 
 	sidedelay:
-		local 	sdmask
-		arrange sdmask, =sdmask
-		call	parse_sidedelay, sdmask, more
+		local 		sdmask
+		arrange 	sdmask, =sdmask
+		call		parse_sidedelay, sdmask, more
 
-	finish:	local 	op
-		compute op, 001b shl 13 or polarity or \
-			    type or index or rel or sdmask
-		arrange op, =dw op
-		assemble op
+	finish:	local 		op
+		compute 	op, 001b shl 13 or polarity or \
+			    	    type or index or rel or sdmask
+		arrange 	op, =dw op
+		assemble 	op
 	end calminstruction
 
 	define wait?
@@ -157,35 +156,35 @@ namespace pio
 
 	iterate instr, in, out
 		calminstruction instr? syntax&
-			local 	dst, bitcount, more, error
+			local 		dst, bitcount, more, error
 
-			match 	dst=,bitcount more?, syntax
-			jyes 	checkbits
-			arrange error, =err 'invalid syntax'
-			assemble error
+			match 		dst=,bitcount more?, syntax
+			jyes 		checkbits
+			arrange 	error, =err 'invalid syntax'
+			assemble 	error
 
 		checkbits:
-			check	bitcount > 0 & bitcount <= 32
-			jyes 	parse
-			arrange error, =err 'bitcount can only be 1 to 32'
-			assemble error
+			check		bitcount > 0 & bitcount <= 32
+			jyes 		parse
+			arrange 	error, =err 'bitcount can only be 1 to 32'
+			assemble 	error
 
-		parse:	compute bitcount, bitcount and 1fh
-			transform dst, instr
-			jyes 	sidedelay
-			arrange error, =err 'unknown operand'
-			assemble error
+		parse:	compute 	bitcount, bitcount and 1fh
+			transform 	dst, instr
+			jyes 		sidedelay
+			arrange 	error, =err 'unknown operand'
+			assemble 	error
 
 		sidedelay:
-			local 	sdmask
-			arrange sdmask, =sdmask
-			call 	parse_sidedelay, sdmask, more
+			local 		sdmask
+			arrange 	sdmask, =sdmask
+			call 		parse_sidedelay, sdmask, more
 
-		finish:	local	op
-			compute op, (% + 1) shl 13 or sdmask \
-				    or bitcount or dst
-			arrange op, =dw op
-			assemble op
+		finish:	local		op
+			compute 	op, (% + 1) shl 13 or sdmask \
+				    	    or bitcount or dst
+			arrange 	op, =dw op
+			assemble 	op
 		end calminstruction
 	end iterate
 
@@ -201,76 +200,76 @@ namespace pio
 
 	iterate <instr, type, special>, push, 0, iffull, pull, 1, ifempty
 		calminstruction instr? syntax&
-			local 	more, error, sdmask, extra, blocking			
+			local 		more, error, sdmask, extra, blocking			
 			
-			match 	, syntax
-			compute sdmask, 0
-			compute extra, 0
-			compute blocking, 1
-			jyes 	finish
+			match 		, syntax
+			compute 	sdmask, 0
+			compute 	extra, 0
+			compute 	blocking, 1
+			jyes 		finish
 
-			match 	=special? more?, syntax
-			jyes 	special
-			match 	more, syntax
-			jump 	blocking
+			match 		=special? more?, syntax
+			jyes 		special
+			match 		more, syntax
+			jump 		blocking
 		special:
-			compute extra, 1
+			compute 	extra, 1
 		blocking:
-			match 	=block? more?, more
-			jyes 	sidedelay
-			match	 =noblock? more?, more
-			jyes 	noblock
-			jump 	sidedelay
+			match 		=block? more?, more
+			jyes 		sidedelay
+			match		=noblock? more?, more
+			jyes 		noblock
+			jump 		sidedelay
 		noblock:
-			compute blocking, 0
+			compute 	blocking, 0
 
 		sidedelay:
-			arrange sdmask, =sdmask
-			call 	parse_sidedelay, sdmask, more
+			arrange 	sdmask, =sdmask
+			call 		parse_sidedelay, sdmask, more
 
-		finish: local 	op
-			compute op, 100b shl 13 or type shl 7 \
-				    or extra shl 6 or blocking shl 5 \
-				    or sdmask
-			arrange op, =dw op
-			assemble op
+		finish: local 		op
+			compute 	op, 100b shl 13 or type shl 7 \
+				    	    or extra shl 6 or blocking shl 5 \
+				    	    or sdmask
+			arrange 	op, =dw op
+			assemble 	op
 		end calminstruction
 	end iterate
 
 	calminstruction mov? syntax&
-		local 	src, dst, vop, more, error
+		local 		src, dst, vop, more, error
 		
-		match 	dst =, :: src more?, syntax
-		compute vop, mov.operation.reverse
-		jyes 	parse
-		match 	dst =, ~  src more?, syntax
-		compute vop, mov.operation.negate
-		jyes 	parse
-		match 	dst =, !  src more?, syntax
-		compute vop, mov.operation.negate
-		jyes 	parse
+		match 		dst =, :: src more?, syntax
+		compute 	vop, mov.operation.reverse
+		jyes 		parse
+		match 		dst =, ~  src more?, syntax
+		compute 	vop, mov.operation.negate
+		jyes 		parse
+		match 		dst =, !  src more?, syntax
+		compute 	vop, mov.operation.negate
+		jyes 		parse
 
-		compute vop, 0
-		match 	dst =, src more?, syntax
-	parse:  transform src, mov.source
-		jyes 	cont
-		arrange error, =err 'invalid source operand'
-		assemble error
-	cont:	transform dst, mov.destination
-		jyes 	sidedelay
-		arrange error, =err 'invalid destination operand'
-		assemble error
+		compute 	vop, 0
+		match 		dst =, src more?, syntax
+	parse:  transform 	src, mov.source
+		jyes 		cont
+		arrange 	error, =err 'invalid source operand'
+		assemble 	error
+	cont:	transform 	dst, mov.destination
+		jyes 		sidedelay
+		arrange 	error, =err 'invalid destination operand'
+		assemble 	error
 	
 	sidedelay:
-		local 	sdmask
-		arrange sdmask, =sdmask
-		call 	parse_sidedelay, sdmask, more
+		local 		sdmask
+		arrange 	sdmask, =sdmask
+		call 		parse_sidedelay, sdmask, more
 	
-	finish: local 	op
-		compute op, 101b shl 13 or dst or \
-			    vop or src or sdmask
-		arrange op, =dw op
-		assemble op
+	finish: local 		op
+		compute 	op, 101b shl 13 or dst or \
+			    	    vop or src or sdmask
+		arrange 	op, =dw op
+		assemble 	op
 	end calminstruction
 
 	define mov?
@@ -288,74 +287,74 @@ namespace pio
 	end iterate
 
 	calminstruction irq? syntax&
-		local 	clear, wait, index, more, error
+		local 		clear, wait, index, more, error
 
-		match 	, syntax
-		compute clear, 0
-		compute wait, 0
-		compute index, 0
-		jyes 	finish
+		match 		, syntax
+		compute 	clear, 0
+		compute 	wait, 0
+		compute 	index, 0
+		jyes 		finish
 
-		match 	=set? more, syntax
-		jyes 	parse
-		match 	=nowait? more, syntax
-		jyes 	parse
-		match 	=wait? more, syntax
-		compute wait, 1
-		jyes 	parse
-		match 	=clear? more, syntax
-		compute clear, 1
-		jyes 	parse
+		match 		=set? more, syntax
+		jyes 		parse
+		match 		=nowait? more, syntax
+		jyes 		parse
+		match 		=wait? more, syntax
+		compute 	wait, 1
+		jyes 		parse
+		match 		=clear? more, syntax
+		compute 	clear, 1
+		jyes 		parse
 
-		compute wait, 0
-		compute clear, 0
-		arrange more, syntax
-	parse:	match 	index more?, more
-		check 	index > 7
-		jno 	relcheck
-		arrange error, =err 'index can only be 0 to 7'
-		assemble error
+		compute 	wait, 0
+		compute 	clear, 0
+		arrange 	more, syntax
+	parse:	match 		index more?, more
+		check 		index > 7
+		jno 		relcheck
+		arrange 	error, =err 'index can only be 0 to 7'
+		assemble 	error
 
 	relcheck:
-		match 	=rel? more?, more
-		jno 	sidedelay
-		compute index, index or 10h
+		match 		=rel? more?, more
+		jno 		sidedelay
+		compute 	index, index or 10h
 
 	sidedelay:
-		local 	sdmask
-		arrange sdmask, =sdmask
-		call 	parse_sidedelay, sdmask, more
+		local 		sdmask
+		arrange 	sdmask, =sdmask
+		call 		parse_sidedelay, sdmask, more
 
-	finish:	local 	op
-		compute op, 110b shl 13 or sdmask or \
-			    clear shl 6 or wait shl 5 or index
-		arrange op, =dw op
-		assemble op
+	finish:	local 		op
+		compute 	op, 110b shl 13 or sdmask or \
+			    	    clear shl 6 or wait shl 5 or index
+		arrange 	op, =dw op
+		assemble 	op
 	end calminstruction
 
 	calminstruction set? syntax&
-		local 	dst, index, more, error
+		local		dst, index, more, error
 
-		match 	dst =, index more?, syntax
-		check 	index < 32
-		jyes 	parse
-		arrange error, =err 'index must be below 32'
-		assemble error
+		match 		dst =, index more?, syntax
+		check 		index < 32
+		jyes 		parse
+		arrange 	error, =err 'index must be below 32'
+		assemble 	error
 
-	parse:	transform dst, set
-		jyes 	sidedelay
-		arrange error, =err 'invalid destination operand'
-		assemble error
+	parse:	transform 	dst, set
+		jyes 		sidedelay
+		arrange 	error, =err 'invalid destination operand'
+		assemble 	error
 
 	sidedelay:
-		local 	sdmask
-		arrange sdmask, =sdmask
-		call 	parse_sidedelay, sdmask, more
+		local 		sdmask
+		arrange 	sdmask, =sdmask
+		call 		parse_sidedelay, sdmask, more
 
-	finish: local 	op
-		compute op, 111b shl 13 or sdmask or dst shl 5 or index
-		arrange op, =dw op
-		assemble op
+	finish: local 		op
+		compute 	op, 111b shl 13 or sdmask or dst shl 5 or index
+		arrange 	op, =dw op
+		assemble	op
 	end calminstruction
 
 	define set?
@@ -364,14 +363,14 @@ namespace pio
 	end iterate
 
 	calminstruction nop? sidedelay&
-		local 	sdmask
-		arrange sdmask, =sdmask
-		call 	parse_sidedelay, sdmask, sidedelay
+		local		sdmask
+		arrange 	sdmask, =sdmask
+		call 		parse_sidedelay, sdmask, sidedelay
 
-		local 	op
-		compute op, 101'00000'010'00'010b or sdmask
-		arrange op, =dw op
-		assemble op
+		local 		op
+		compute 	op, 101'00000'010'00'010b or sdmask
+		arrange 	op, =dw op
+		assemble	op
 	end calminstruction
 end namespace
 
