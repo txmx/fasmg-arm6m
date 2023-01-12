@@ -121,7 +121,7 @@ namespace pio
 		arrange 	error, =err 'polarity can be either 1 or 0'
 		assemble 	error
 
-	parse:  transform type, wait
+	parse:  transform 	type, wait
 		check 		type = wait.irq
 		jno 		noirq
 		check 		index <= 7
