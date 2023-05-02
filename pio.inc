@@ -1,5 +1,5 @@
 define pio?
-namespace pio
+namespace pio?
 	optset = 0
 	sideset = 0
 	cursideset = 0
@@ -368,7 +368,7 @@ namespace pio
 		call 		parse_sidedelay, sdmask, sidedelay
 
 		local 		op
-		compute 	op, 101'00000'010'00'010b or sdmask
+		compute 	op, 0a042h or sdmask
 		arrange 	op, =dw op
 		assemble	op
 	end calminstruction
@@ -417,7 +417,7 @@ macro end?.program?
 		       pull, mov, irq, set, nop
 		mvmacro pio.instr, instr
 	end iterate
-	programsize := $ - $$
+	size := $ - $$
 
 	end namespace
 	end virtual
@@ -425,7 +425,13 @@ end macro
 
 macro emitprogram? name*
 	local program
-	load program:name.programsize from name:0
+	load program:name.size from name:0
 	db program
 end macro
+
+struc emitprogram? name*
+	local program
+	load program:name.size from name:0
+	. db program
+end struc
 

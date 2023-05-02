@@ -545,7 +545,7 @@ end calminstruction
 
 iterate <name, basecode>, \
 bx,  4700h,		  \
-blx, 4780h		  
+blx, 4780h
 	calminstruction name? label*
 		local		op, error
 
@@ -567,49 +567,53 @@ end iterate
 
 ; load/store instructions
 
-calminstruction arm6.parse_ldst? basereg, wback, regmask, syntax&
-	local		base, reglist, error
+calminstruction arm6.parse_ldstm? basereg, wback, highregs, regmask, syntax&
+	local		base, writeback, reglist, outmask, error
 
 	match		base=,reglist, syntax
-parse_basereg:
 	match		base!, base
 	jno		regcont
-	local		writeback
 	compute		writeback, 1
-	publish		wback, writeback
 regcont:
+	compute		writeback, 0
+	publish		wback, writeback
+
 	transform	base, arm6.regs
-	jyes		regcheck
-	arrange		error, =err 'base register must be register'
-	assemble	error
-regcheck:
+	jno		regerr
 	check		base < 8
 	jyes		parse_reglist
-	arrange		error, =err 'base register must be low register'
+regerr:	arrange		error, =err 'base register must be low register'
 	assemble	error
 
 parse_reglist:
 	publish		basereg, base
 
-	match		{reglist}, reglist
+	arrange		outmask, =outmask
+	call		arm6.parse_reglist, outmask, highregs, reglist
+	publish		regmask, outmask
+end calminstruction
+
+calminstruction arm6.parse_reglist? outmask, highregs, list*&
+	local		reg, tmpmask, more
+
+	match		{list}, list
 	jno		generic_reglist_error
 
-	local		reg, tmpmask, more
 	compute		tmpmask, 0
-	arrange		reglist, reglist=,
-parse:	match		reg=,more?, reglist
+	arrange		list, list=,
+parse:	match		reg=,more?, list
 	jno		endparse
-	arrange		reglist, more
+	arrange		list, more
 	transform	reg, arm6.regs
 	jno		generic_reglist_error
-	check		reg < 8
+	check		reg < 8 | highregs
 	jyes		cont
 	arrange		error, =err 'register list must include low registers only'
 	assemble	error
 cont:	compute		tmpmask, tmpmask or 1 shl reg
 	jump		parse
 endparse:
-	publish		regmask, tmpmask
+	publish		outmask, tmpmask
 	exit
 
 generic_reglist_error:
@@ -618,12 +622,13 @@ generic_reglist_error:
 end calminstruction
 
 calminstruction ldm? syntax&
-	local		base, wback, reglist, op, error
+	local		base, wback, highregs, reglist, op, error
 	arrange		base,    =base
 	arrange		wback,   =wback
 	arrange		reglist, =reglist
+	compute		highregs, 0
 
-	call		arm6.parse_ldst, base, wback, reglist, syntax
+	call		arm6.parse_ldstm, base, wback, highregs, reglist, syntax
 
 	check		wback
 	jno		finish
@@ -638,12 +643,13 @@ finish:	compute		op, 0c800h or reglist or base shl 8
 end calminstruction
 
 calminstruction stm? syntax&
-	local		base, wback, reglist, op, error
+	local		base, wback, highregs, reglist, op, error
 	arrange		base, =base
 	arrange		wback, =wback
 	arrange		reglist, =reglist
+	compute		highregs, 0
 
-	call		arm6.parse_ldst, base, wback, reglist, syntax
+	call		arm6.parse_ldstm, base, wback, highregs, reglist, syntax
 
 	compute		op, 0c000h or reglist or base shl 8
 	arrange		op, =dw op
@@ -658,7 +664,7 @@ end iterate
 
 iterate alias, ldmia, ldmfd
 	macro alias? syntax&
-		stm syntax
+		ldm syntax
 	end macro
 end iterate
 
@@ -687,7 +693,12 @@ which:	check		arm6.@src.offtype relativeto arm6.register
 	arrange		error, =err 'offset must be low register or immediate'
 	assemble	error
 
-imm:	check		arm6.@src.base = arm6.regs.sp
+imm:	check		arm6.@src.offvalue mod 4 = 0
+	jyes		immcont
+	arrange		error, =err 'offset must be 4 aligned'
+	assemble	error
+immcont:
+	check		arm6.@src.base = arm6.regs.sp
 	jyes		immsp
 	check		arm6.@src.offvalue <= 124 & arm6.@src.offvalue >= 0
 	jyes		immfinish
@@ -751,7 +762,12 @@ which:	check		arm6.@src.offtype relativeto arm6.register
 	arrange		error, =err 'offset must be low register or immediate'
 	assemble	error
 
-imm:	check		arm6.@src.base = arm6.regs.sp
+imm:	check		arm6.@src.offvalue mod 4 = 0
+	jyes		immcont
+	arrange		error, =err 'offset must be 4 aligned'
+	assemble	error
+immcont:
+	check		arm6.@src.base = arm6.regs.sp
 	jyes		immsp
 	check		arm6.@src.offvalue <= 124 & arm6.@src.offvalue >= 0
 	jyes		immfinish
@@ -780,12 +796,12 @@ end calminstruction
 iterate <name, regcode, immcode>, \
 ldrb, 5c00h, 7800h, 		  \
 strb, 5400h, 7000h
-	calminstruction name? dst, src*
+	calminstruction name? dst, src*&
 		local		op, error
 
 		call		arm6.parse_operand@dst, dst
 		call		arm6.parse_operand@src, src
-		
+
 		check		arm6.@dst.type relativeto arm6.register & arm6.@dst.value < 8
 		jyes		cont
 		arrange		error, =err 'destination must be low register'
@@ -804,7 +820,7 @@ strb, 5400h, 7000h
 
 	imm:	check		arm6.@src.offvalue <= 31 & arm6.@src.offvalue >= 0
 		jyes		immfinish
-		arrange		error, =err 'immediate must be below 32'
+		arrange		error, =err 'offset must be below 32'
 		assemble	error
 	immfinish:
 		compute		op, immcode or arm6.@src.value or arm6.@src.base shl 3 or \
@@ -822,12 +838,12 @@ end iterate
 iterate <name, regcode, immcode>, \
 ldrh, 5a00h, 8800h,		  \
 strh, 5200h, 8000h
-	calminstruction name? dst, src*
+	calminstruction name? dst, src*&
 		local		op, error
 
 		call		arm6.parse_operand@dst, dst
 		call		arm6.parse_operand@src, src
-		
+
 		check		arm6.@dst.type relativeto arm6.register & arm6.@dst.value < 8
 		jyes		cont
 		arrange		error, =err 'destination must be low register'
@@ -844,9 +860,14 @@ strh, 5200h, 8000h
 		arrange		error, =err 'offset must be low register or immediate'
 		assemble	error
 
-	imm:	check		arm6.@src.offvalue <= 62 & arm6.@src.offvalue >= 0
+	imm:	check		arm6.@src.offvalue mod 2 = 0
+		jyes		immrange
+		arrange		error, =err 'offset must be 2 aligned'
+		assemble	error
+	immrange:
+		check		arm6.@src.offvalue <= 62 & arm6.@src.offvalue >= 0
 		jyes		immfinish
-		arrange		error, =err 'immediate must be below 63'
+		arrange		error, =err 'offset must be below 63'
 		assemble	error
 	immfinish:
 		compute		op, immcode or arm6.@src.value or arm6.@src.base shl 3 or \
@@ -864,12 +885,12 @@ end iterate
 iterate <name, basecode>, \
 ldrsb, 5600h,		  \
 ldrsh, 5e00h
-	calminstruction name? dst, src*
+	calminstruction name? dst, src*&
 		local		op, error
 
 		call		arm6.parse_operand@dst, dst
 		call		arm6.parse_operand@src, src
-		
+
 		check		arm6.@dst.type relativeto arm6.register & arm6.@dst.value < 8
 		jyes		cont
 		arrange		error, =err 'destination must be low register'
@@ -994,7 +1015,7 @@ end iterate
 define udf?
 calminstruction udf.w? imm:0
 	local 		op
-	
+
 	call		arm6.parse_operand@aux, imm
 
 	check		arm6.@aux.value < 65536
@@ -1031,3 +1052,24 @@ isb, 0f3bfh, 8f6fh
 	end calminstruction
 end iterate
 
+iterate <name, specialreg, specialmask, opcode>, \
+push, arm6.regs.lr, 0bfffh, 0b400h,	    	 \
+pop,  arm6.regs.pc, 07fffh, 0bc00h
+	calminstruction name? list*&
+		local 		listmask, highregs, special, op, error
+		arrange		listmask, =listmask
+		compute		highregs, 1
+
+		call		arm6.parse_reglist, listmask, highregs, list
+		compute		special, ((1 shl specialreg) and listmask) shr specialreg
+		compute		listmask, specialmask and listmask
+		check		listmask > 0ffh
+		jno		finish
+		arrange		error, =err 'only permitted high register is lr'
+		assemble	error
+
+	finish:	compute		op, opcode or special shl 8 or listmask
+		arrange		op, =dw op
+		assemble	op
+	end calminstruction
+end iterate
