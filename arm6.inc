@@ -549,7 +549,7 @@ blx, 4780h
 	calminstruction name? label*
 		local		op, error
 
-		call		arm6.parse_operand@dst, dst
+		call		arm6.parse_operand@dst, label
 		check		arm6.@dst.type relativeto arm6.register
 		jyes		cont
 		arrange		error, =err 'subroutine must be provided through register'
