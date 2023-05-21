@@ -402,7 +402,7 @@ macro program? name*, options&
 		mvmacro instr, pio.instr
 	end iterate
 
-	macro wrap? target
+	macro wrap? target:
 		match =target, target
 			name.wraptarget := $
 		else match , target
@@ -433,5 +433,11 @@ struc emitprogram? name*
 	local program
 	load program:name.size from name:0
 	. db program
+	.size := name.size
+	if defined name.wrap
+		.wrap := name.wrap
+	end if
+	if defined name.wraptarget
+		.wraptarget := name.wraptarget
+	end if
 end struc
-
